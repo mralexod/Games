@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Филворды: Слово за словом</title>
+
+<style>
+@font-face {
+  font-family: 'PT Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(fonts/5e33b43f1a.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'PT Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(fonts/177d0d73e6.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'PT Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(fonts/3335d3bba7.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'PT Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(fonts/75ce67f575.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'PT Serif';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(fonts/b8699daa1e.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'PT Serif';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(fonts/fa3c6292bf.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+html,body{margin:0}
+</style>
+</head>
+<body>
+<style>
+/* Layout: calm single column for 35–55+ — level & theme header, big square letter grid you trace with a finger, word list as chips under it; large type, no timers */
+:root{
+  --bg:#dcebe4; --paper:#f7fbf8; --ink:#1d2e28; --muted:#5d746b; --green:#1f6f5c; --green-d:#155445; --line:#b9d3c8; --gold:#d79a1e;
+  --serif:"PT Serif",Georgia,serif; --sans:"PT Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+html,body{height:100%}
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;overflow:hidden}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+#app{position:relative;max-width:520px;margin:0 auto;height:100%;display:flex;flex-direction:column;padding:calc(10px + env(safe-area-inset-top,0px)) 16px calc(12px + env(safe-area-inset-bottom,0px));gap:12px;overflow:hidden}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.lvl{font-family:var(--serif);font-size:24px;line-height:1.1}
+.lvl span{display:block;font-family:var(--sans);font-size:15px;color:var(--muted);font-weight:700;letter-spacing:.03em}
+.coins{background:var(--paper);border:2px solid var(--line);border-radius:999px;padding:6px 14px;font-weight:700;font-size:18px;font-variant-numeric:tabular-nums}
+.grid{display:grid;gap:6px;touch-action:none;background:var(--paper);border-radius:22px;padding:10px;box-shadow:0 6px 20px rgba(31,111,92,.12);margin:0 auto;width:100%;max-width:min(100%,58vh)}
+.c{aspect-ratio:1;border-radius:12px;background:#eef5f1;display:grid;place-items:center;font-weight:700;font-size:clamp(20px,7.5vw,34px);color:var(--ink);text-transform:uppercase;transition:background .15s,transform .1s;position:relative}
+.c.sel{background:var(--gold);color:#fff;transform:scale(1.04)}
+.c.f{color:#fff}
+.c.hintc::after{content:"";position:absolute;inset:-3px;border-radius:14px;border:3px solid var(--gold);animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.25}}
+.cur{min-height:34px;text-align:center;font-family:var(--serif);font-size:26px;letter-spacing:.12em;color:var(--green)}
+.words{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.w{padding:7px 12px;border-radius:999px;background:var(--paper);border:2px solid var(--line);font-weight:700;font-size:17px;text-transform:uppercase;letter-spacing:.04em}
+.w.f{color:#fff;border-color:transparent;text-decoration:line-through;text-decoration-thickness:2px}
+.bar{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:auto}
+.btn{background:var(--paper);border:2px solid var(--line);border-radius:18px;padding:13px;font-weight:700;font-size:17px;text-align:center;line-height:1.2}
+.btn small{display:block;font-weight:400;font-size:14px;color:var(--muted)}
+.btn.main{background:var(--green);border-color:var(--green);color:#fff}
+.btn.main small{color:#d6efe6}
+.btn[disabled]{opacity:.45}
+#ov{position:absolute;inset:0;z-index:20;background:rgba(29,46,40,.45);display:flex;align-items:center;justify-content:center;padding:16px}
+.card{width:100%;background:var(--paper);border-radius:26px;padding:22px;display:grid;gap:14px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.2);animation:up .3s ease-out}
+@keyframes up{from{transform:translateY(30px);opacity:.3}}
+.card h2{font-family:var(--serif);font-size:28px;margin:0;color:var(--green);text-wrap:balance}
+.stars{font-size:40px;letter-spacing:6px;color:var(--gold)}
+.stars s{color:#cfdcd6;text-decoration:none}
+.m{color:var(--muted);font-size:16px}
+.themes{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.themes span{font-size:14px;padding:4px 9px;border-radius:999px;background:#e5f0eb;color:var(--muted)}
+.themes span.done{background:var(--green);color:#fff}
+#toast{position:absolute;left:50%;top:40%;transform:translateX(-50%);z-index:30;pointer-events:none;background:var(--ink);color:#fff;padding:12px 16px;border-radius:14px;font-size:17px;width:max-content;max-width:calc(100% - 32px);text-align:center}
+#adov{position:absolute;inset:0;z-index:40;background:#000;color:#fff;display:grid;place-items:center;text-align:center;padding:24px;font-size:16px}
+#adov b{font-size:46px;display:block;margin-bottom:8px;color:var(--gold)}
+.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.snd{font-size:18px;background:var(--paper);border:2px solid var(--line);border-radius:12px;padding:4px 8px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div id="app">
+  <div class="top">
+    <div class="lvl" id="lvl"></div>
+    <div style="display:flex;gap:8px;align-items:center"><button class="snd" id="snd" data-a="sound" aria-label="Звук">🔊</button><span class="coins" id="coins"></span></div>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="cur" id="cur"></div>
+  <div class="words" id="words"></div>
+  <div class="bar">
+    <button class="btn" id="hintb" data-a="hint">💡 Подсказка<small>30 монет</small></button>
+    <button class="btn main" data-a="adhint">🎬 Подсказка<small>за рекламу</small></button>
+  </div>
+  <div id="ov" hidden></div>
+  <div id="toast" hidden></div>
+  <div id="adov" hidden></div>
+</div>
+
+<script>
+/* ===== SDK Яндекс Игр (копия общее/ysdk.js) ===== */
+const YSDK={sdk:null,player:null,onMute:()=>{},
+ async init(m){this.onMute=m||(()=>{});try{if(window.YaGames){this.sdk=await YaGames.init();try{this.player=await this.sdk.getPlayer({scopes:false})}catch(e){}}}catch(e){this.sdk=null}},
+ ready(){try{this.sdk&&this.sdk.features.LoadingAPI&&this.sdk.features.LoadingAPI.ready()}catch(e){}},
+ start(){try{this.sdk&&this.sdk.features.GameplayAPI&&this.sdk.features.GameplayAPI.start()}catch(e){}},
+ stop(){try{this.sdk&&this.sdk.features.GameplayAPI&&this.sdk.features.GameplayAPI.stop()}catch(e){}},
+ fullscreen(){return new Promise(r=>{if(!this.sdk)return r();this.sdk.adv.showFullscreenAdv({callbacks:{onOpen:()=>this.onMute(true),onClose:()=>{this.onMute(false);r()},onError:()=>{this.onMute(false);r()}}})})},
+ rewarded(cb,el){if(!this.sdk){let n=3;this.onMute(true);el.innerHTML=`<div><b>${n}</b>Здесь будет реклама Яндекса за награду</div>`;el.hidden=false;const t=setInterval(()=>{n--;if(n<=0){clearInterval(t);el.hidden=true;this.onMute(false);cb()}else el.querySelector('b').textContent=n},650);return}
+  let got=false;this.sdk.adv.showRewardedVideo({callbacks:{onOpen:()=>this.onMute(true),onRewarded:()=>got=true,onClose:()=>{this.onMute(false);if(got)cb()},onError:()=>this.onMute(false)}})},
+ async save(k,d){try{localStorage.setItem(k,JSON.stringify(d))}catch(e){}try{this.player&&await this.player.setData({[k]:d},false)}catch(e){}},
+ async load(k){try{if(this.player){const d=await this.player.getData([k]);if(d&&d[k])return d[k]}}catch(e){}try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},
+};
+
+/* ===== Темы и слова (буква Ё заменена на Е) ===== */
+const THEMES=[
+ ['Дача','грядка сарай забор лейка тяпка лопата грабли теплица огород малина клубника кабачок баня колодец шланг рассада тыква укроп редис компост калитка беседка улей ведро вилы сирень яблоня'],
+ ['Животные','волк лиса заяц медведь барсук енот лось кабан белка ежик бобр олень тигр слон жираф зебра лев рысь соболь крот хорек куница норка выдра пума панда коала'],
+ ['На кухне','ложка вилка чашка тарелка кастрюля чайник плита духовка половник терка миска сито кружка блюдце сковорода нож доска скалка противень банка крышка холодильник'],
+ ['Фрукты и ягоды','яблоко груша слива вишня черешня арбуз дыня банан апельсин лимон киви манго персик абрикос клюква брусника черника малина смородина крыжовник виноград гранат хурма инжир айва'],
+ ['Города России','москва казань омск томск пермь уфа самара тула орел курск псков сочи тверь чита ярославль калуга рязань липецк брянск сургут вологда тамбов пенза кострома иваново'],
+ ['Профессии','врач повар пекарь пилот юрист судья актер певец учитель столяр плотник маляр шофер кассир швея садовник летчик моряк геолог врач инженер фермер почтальон механик'],
+ ['Транспорт','автобус трамвай метро поезд самолет катер лодка яхта такси велосипед мотоцикл самокат паром теплоход вертолет грузовик фургон электричка ракета карета сани'],
+ ['Цветы','роза астра пион лилия тюльпан ромашка гвоздика нарцисс мак ирис флокс георгин гладиолус фиалка орхидея лютик василек колокольчик сирень жасмин мимоза лотос'],
+ ['Одежда','пальто куртка шуба платье юбка брюки шорты рубашка свитер кофта шапка шарф варежки носки пиджак галстук халат пижама фартук жилет майка блузка'],
+ ['Погода','дождь снег град ветер туман иней гроза радуга буран метель облако солнце жара мороз роса лужа вьюга ливень зной оттепель гололед штиль'],
+ ['Птицы','воробей синица ворона сорока голубь ласточка аист цапля чайка утка гусь лебедь сова филин орел сокол дятел соловей скворец снегирь грач журавль павлин страус'],
+ ['Овощи','морковь свекла капуста картофель лук чеснок огурец томат перец редис репа тыква кабачок баклажан горох фасоль укроп петрушка салат щавель редька патиссон'],
+ ['В доме','диван кресло стул стол шкаф полка кровать комод ковер зеркало лампа люстра окно дверь штора подушка одеяло часы порог балкон кладовка прихожая'],
+ ['Спорт','футбол хоккей теннис бокс борьба лыжи биатлон плавание гребля шахматы шашки бег прыжки самбо дзюдо регби гольф волейбол баскетбол каток коньки мяч'],
+ ['Деревья','береза дуб клен липа ель сосна осина ольха ива рябина тополь каштан кедр пихта лиственница ясень вяз черемуха акация орешник бук граб'],
+ ['Еда','каша суп борщ щи блины пироги пельмени котлета омлет сырники ватрушка винегрет оливье салат хлеб батон булка кефир творог сметана варенье мед'],
+].map(([n,w])=>({n,w:[...new Set(w.split(' ').map(x=>x.toLowerCase().replace(/ё/g,'е')))]}));
+const COLORS=['#2f8f74','#d07b2b','#5a7fc4','#b5547a','#7a9a36','#8a62b8','#c2593f','#3d93a8','#9a7b2e','#4e7f5a'];
+
+/* ===== Генерация уровня ===== */
+function rng(seed){let a=seed>>>0||1;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const sizeFor=lv=>lv<=4?5:lv<=15?6:7;
+function hamPath(n,r){
+  let p=[];for(let y=0;y<n;y++)for(let x=0;x<n;x++)p.push([y%2?n-1-x:x,y]);
+  for(let it=0;it<n*n*40;it++){
+    if(r()<.5)p.reverse();
+    const e=p[p.length-1];const nb=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>[e[0]+dx,e[1]+dy]).filter(([x,y])=>x>=0&&y>=0&&x<n&&y<n);
+    const q=nb[Math.floor(r()*nb.length)];const i=p.findIndex(c=>c[0]===q[0]&&c[1]===q[1]);
+    if(i===p.length-2)continue;
+    p=p.slice(0,i+1).concat(p.slice(i+1).reverse());
+  }
+  return p;
+}
+function pickWords(pool,total,r){
+  for(let t=0;t<800;t++){
+    const sh=pool.slice().sort(()=>r()-.5);let sum=0;const res=[];
+    for(const w of sh){const rest=total-sum-w.length;if(rest===0||rest>=3){res.push(w);sum+=w.length;if(sum===total)return res}}
+  }
+  return null;
+}
+function makeLevel(lv){
+  const n=sizeFor(lv),r=rng(lv*7919+13);
+  const th=THEMES[(lv-1)%THEMES.length];
+  let pool=th.w.filter(w=>w.length>=3&&w.length<=Math.min(9,n+3));
+  let words=pickWords(pool,n*n,r);
+  if(!words){pool=pool.concat(THEMES[lv%THEMES.length].w.filter(w=>w.length>=3&&w.length<=n+3));words=pickWords([...new Set(pool)],n*n,r)}
+  const path=hamPath(n,r);const grid=Array(n*n).fill('');const list=[];let k=0;
+  words.forEach((w,wi)=>{const cells=[];for(const ch of w){const [x,y]=path[k++];grid[y*n+x]=ch;cells.push(y*n+x)}list.push({w,cells,f:false,c:COLORS[wi%COLORS.length],h:0})});
+  return{lv,n,theme:th.n,grid,words:list};
+}
+
+/* ===== Состояние ===== */
+const KEY='filword_v1';
+let S=null,L=null,sel=[],selecting=false;
+function fresh(){return{v:1,lv:1,coins:60,stars:{},hintsUsed:0,sound:true,streak:0,realLast:null,found:[]}}
+const $=id=>document.getElementById(id);
+let toastT;function toast(t){const e=$('toast');e.textContent=t;e.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>e.hidden=true,1900)}
+let AC=null,muted=false;
+function snd(t,k=0){if(!S||!S.sound||muted)return;try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();const now=AC.currentTime;
+ const tone=(f,d,ty='sine',v=.07,at=0)=>{const o=AC.createOscillator(),g=AC.createGain();o.type=ty;o.frequency.setValueAtTime(f,now+at);g.gain.setValueAtTime(v,now+at);g.gain.exponentialRampToValueAtTime(.0001,now+at+d);o.connect(g).connect(AC.destination);o.start(now+at);o.stop(now+at+d+.02)};
+ if(t==='step')tone(420+k*35,.07,'sine',.04);
+ if(t==='ok'){tone(660,.12,'triangle');tone(880,.16,'triangle',.07,.1)}
+ if(t==='no')tone(200,.18,'sine',.05);
+ if(t==='win'){[523,659,784,1046].forEach((f,i)=>tone(f,.25,'triangle',.07,i*.12))}
+}catch(e){}}
+
+/* ===== Отрисовка ===== */
+function render(){
+  $('lvl').innerHTML=`Уровень ${L.lv}<span>Тема: ${L.theme}</span>`;
+  $('coins').textContent=`🪙 ${S.coins}`;
+  $('snd').textContent=S.sound?'🔊':'🔇';
+  const g=$('grid');g.style.gridTemplateColumns=`repeat(${L.n},1fr)`;
+  const owner={};L.words.forEach((w,i)=>{if(w.f)w.cells.forEach(c=>owner[c]=w.c)});
+  const hintCells=new Set();L.words.forEach(w=>{if(!w.f)for(let i=0;i<w.h;i++)hintCells.add(w.cells[i])});
+  g.innerHTML=L.grid.map((ch,i)=>`<div class="c ${owner[i]?'f':''} ${sel.includes(i)?'sel':''} ${hintCells.has(i)?'hintc':''}" data-i="${i}" style="${owner[i]?`background:${owner[i]}`:''}">${ch}</div>`).join('');
+  $('words').innerHTML=L.words.map(w=>`<span class="w ${w.f?'f':''}" style="${w.f?`background:${w.c}`:''}">${w.w}</span>`).join('');
+  $('cur').textContent=sel.map(i=>L.grid[i]).join('').toUpperCase();
+  $('hintb').disabled=S.coins<30;
+}
+function paintSel(){document.querySelectorAll('.c').forEach(e=>e.classList.toggle('sel',sel.includes(+e.dataset.i)));$('cur').textContent=sel.map(i=>L.grid[i]).join('').toUpperCase()}
+
+/* ===== Ведение пальцем ===== */
+const grid=$('grid');
+const adj=(a,b)=>{const n=L.n;const ax=a%n,ay=Math.floor(a/n),bx=b%n,by=Math.floor(b/n);return Math.abs(ax-bx)+Math.abs(ay-by)===1};
+const taken=i=>L.words.some(w=>w.f&&w.cells.includes(i));
+function cellAt(e){const el=document.elementFromPoint(e.clientX,e.clientY);const c=el&&el.closest&&el.closest('.c');return c?+c.dataset.i:null}
+grid.addEventListener('pointerdown',e=>{const i=cellAt(e);if(i==null||taken(i))return;selecting=true;sel=[i];grid.setPointerCapture(e.pointerId);snd('step',0);paintSel()});
+grid.addEventListener('pointermove',e=>{if(!selecting)return;const i=cellAt(e);if(i==null)return;const last=sel[sel.length-1];if(i===last)return;
+  if(sel.length>1&&i===sel[sel.length-2]){sel.pop();paintSel();return}
+  if(!sel.includes(i)&&adj(last,i)&&!taken(i)){sel.push(i);snd('step',sel.length);paintSel()}});
+grid.addEventListener('pointerup',()=>{if(!selecting)return;selecting=false;check();});
+grid.addEventListener('pointercancel',()=>{selecting=false;sel=[];render()});
+function check(){
+  if(sel.length<2){sel=[];render();return}
+  const key=sel.join(','),rev=sel.slice().reverse().join(',');
+  const w=L.words.find(x=>!x.f&&(x.cells.join(',')===key||x.cells.join(',')===rev));
+  if(w){w.f=true;const gain=w.w.length*2;S.coins+=gain;snd('ok');toast(`${w.w.toUpperCase()} · +${gain} 🪙`);sel=[];render();saveProg();
+    if(L.words.every(x=>x.f))setTimeout(win,500);return}
+  const word=sel.map(i=>L.grid[i]).join('');
+  if(L.words.some(x=>!x.f&&(x.w===word||x.w===[...word].reverse().join(''))))toast('Почти! Это слово спрятано по-другому');
+  snd('no');grid.classList.remove('shake');void grid.offsetWidth;grid.classList.add('shake');sel=[];render();
+}
+function hint(){
+  const w=L.words.filter(x=>!x.f&&x.h<x.w.length-1);if(!w.length)return false;
+  const t=w.sort((a,b)=>a.h-b.h)[0];t.h++;L.hints=(L.hints||0)+1;saveProg();render();snd('step',4);return true;
+}
+async function win(){
+  const st=(L.hints||0)===0?3:(L.hints||0)<=2?2:1;S.stars[L.lv]=Math.max(S.stars[L.lv]||0,st);const bonus=20+L.n*2;S.coins+=bonus;snd('win');
+  const doneThemes=new Set();for(let i=1;i<=L.lv;i++)doneThemes.add(THEMES[(i-1)%THEMES.length].n);
+  $('ov').innerHTML=`<div class="card"><h2>Уровень ${L.lv} пройден!</h2><div class="stars">${'★'.repeat(st)}<s>${'★'.repeat(3-st)}</s></div><div class="m">+${bonus} монет · всего ${S.coins} 🪙</div>
+   <div class="m">Тем пройдено: ${Math.min(doneThemes.size,THEMES.length)} из ${THEMES.length}</div><div class="themes">${THEMES.map(t=>`<span class="${doneThemes.has(t.n)?'done':''}">${t.n}</span>`).join('')}</div>
+   <button class="btn main" data-a="next">Дальше: уровень ${L.lv+1}<small>${THEMES[L.lv%THEMES.length].n}</small></button></div>`;
+  $('ov').hidden=false;S.lv++;S.found=[];save();
+}
+function loadLevel(){L=makeLevel(S.lv);(S.found||[]).forEach(i=>{if(L.words[i])L.words[i].f=true});L.hints=S.lvHints||0;(S.hintArr||[]).forEach((h,i)=>{if(L.words[i])L.words[i].h=h});sel=[];render()}
+function saveProg(){S.found=L.words.map((w,i)=>w.f?i:-1).filter(i=>i>=0);S.lvHints=L.hints||0;S.hintArr=L.words.map(w=>w.h);save()}
+function save(){YSDK.save(KEY,S)}
+function daily(){const d=new Date(),today=d.toISOString().slice(0,10),y=new Date(d-864e5).toISOString().slice(0,10);if(S.realLast===today)return;
+  S.streak=S.realLast===y?S.streak+1:1;S.realLast=today;if(S.lv<2)return;const g=20*Math.min(7,S.streak);S.coins+=g;save();
+  $('ov').innerHTML=`<div class="card"><h2>С возвращением!</h2><div style="font-size:56px">🎁</div><div class="m">Подарок за ${S.streak}-й день подряд: <b>+${g} монет</b>.<br>Заходите каждый день — подарок растёт.</div><button class="btn main" data-a="close">Спасибо</button></div>`;$('ov').hidden=false}
+
+const A={
+ hint:()=>{if(S.coins<30)return toast('Не хватает монет — возьмите подсказку за рекламу');if(hint()){S.coins-=30;render();save()}},
+ adhint:()=>YSDK.rewarded(()=>{hint()},$('adov')),
+ next:async()=>{$('ov').hidden=true;if((S.lv-1)%2===0)await YSDK.fullscreen();S.lvHints=0;S.hintArr=[];loadLevel();save()},
+ close:()=>{$('ov').hidden=true},
+ sound:()=>{S.sound=!S.sound;render();save()},
+};
+document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el||el.disabled)return;const f=A[el.dataset.a];if(f)f(el.dataset.x)});
+document.addEventListener('contextmenu',e=>e.preventDefault());
+document.addEventListener('visibilitychange',()=>{if(document.hidden){save();try{AC&&AC.suspend()}catch(e){}YSDK.stop()}else YSDK.start()});
+
+(async()=>{
+  await YSDK.init(m=>{muted=m;try{m?AC&&AC.suspend():AC&&AC.resume()}catch(e){}});
+  const d=await YSDK.load(KEY);S=d&&d.v===1?d:fresh();
+  loadLevel();daily();YSDK.ready();YSDK.start();
+  if(S.lv===1&&!S.found.length)toast('Ведите пальцем по соседним буквам, чтобы собрать слово');
+})();
+</script>
+
+</body>
+</html>
