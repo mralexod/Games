@@ -144,6 +144,11 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .badge{position:absolute;top:-4px;right:calc(50% - 30px);background:var(--bad);color:#fff;font-size:11px;font-weight:800;border-radius:10px;min-width:19px;height:19px;line-height:19px;padding:0 5px;box-shadow:0 0 0 2px var(--night)}
 .pulse{animation:pulse 1.3s infinite}
 @keyframes pulse{50%{transform:scale(1.07);box-shadow:0 0 0 7px rgba(255,190,59,.3)}}
+.dock button.lk .app{filter:grayscale(1) brightness(.55)}
+.dock .lkI{position:absolute;top:-4px;right:calc(50% - 30px);font-size:13px;font-style:normal}
+.dock small{font-size:9px;line-height:1;margin-top:-2px;opacity:.85}
+.btn.lockd{opacity:.5;filter:grayscale(1)}
+#push.unl span{white-space:normal}
 h2{font-family:var(--display);font-weight:400;font-size:22px;margin:2px 0 0;letter-spacing:.3px;text-wrap:balance;line-height:1.1}
 .sub{color:var(--muted);font-size:13px;margin-top:-6px}
 .w{background:var(--glass);border:1px solid var(--line);border-radius:22px;padding:14px;display:grid;gap:8px}
@@ -481,7 +486,7 @@ const level=()=>{let l=LEVELS[0];for(const x of LEVELS)if(S.stats.profit>=x[0])l
 const repK=()=>.94+.02*S.rep;
 const uid=()=>S.seq++;
 const stamp=()=>S.day*10000+S.time;
-function fresh(){return{v:2,money:120000,rep:3,day:1,time:0,cls:0,slots:2,eye:0,garage:[],board:[],inbox:[],sched:[],news:null,tip:null,mech:0,stats:{deals:0,profit:0,best:0,scams:0},dayStats:{deals:0,profit:0},tut:0,freeLot:0,seq:1,sound:true}}
+function fresh(){return{v:2,money:120000,rep:3,day:1,time:0,cls:0,slots:2,eye:0,garage:[],board:[],inbox:[],sched:[],news:null,tip:null,mech:0,stats:{deals:0,profit:0,best:0,scams:0},dayStats:{deals:0,profit:0},tut:0,freeLot:0,seq:1,sound:true,apps:{}}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.v===2)return s}catch(e){}return null}
 
@@ -743,11 +748,11 @@ function floatText(el,t){const fx=document.getElementById('fx');const[x,y]=relPo
 function shake(){const p=document.getElementById('phone');p.classList.remove('shake');void p.offsetWidth;p.classList.add('shake');try{navigator.vibrate&&navigator.vibrate(200)}catch(e){}}
 let toastT;function toast(t){const el=document.getElementById('toast');el.textContent=t;el.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>el.hidden=true,2800)}
 let pushT;
-function push(app,title,text,go){
-  ui.push={app,title,text,go};const el=document.getElementById('push');
+function push(app,title,text,go,long){
+  ui.push={app,title,text,go};const el=document.getElementById('push');el.classList.toggle('unl',!!long);
   el.innerHTML=`<span class="app" style="background:${APPS[app].bg}">${APPS[app].i}</span><span><b>${title}</b><span>${text}</span></span>`;
   el.hidden=false;el.style.animation='none';void el.offsetWidth;el.style.animation='';
-  clearTimeout(pushT);pushT=setTimeout(()=>el.hidden=true,3800);snd('push');
+  clearTimeout(pushT);pushT=setTimeout(()=>el.hidden=true,long?6500:3800);snd('push');
 }
 
 /* ================= РЕКЛАМА (заглушка SDK) ================= */
@@ -766,6 +771,20 @@ const APPS={
  auction:{n:'Аукцион',bg:'linear-gradient(135deg,#ff6a8e,#c4285a)',i:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><rect x="4" y="9" width="16" height="11" rx="2"/><path d="M4 13h16M12 9v11M8 9c-2-3 2-5 4 0 2-5 6-3 4 0"/></svg>'},
  news:{n:'Новости',bg:'linear-gradient(135deg,#9aa0ad,#5b6070)',i:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M8 9h8M8 13h8M8 16h5"/></svg>'},
 };
+
+/* ================= ОТКРЫТИЕ ПРИЛОЖЕНИЙ ПО ШАГАМ ================= */
+const UNL={
+ garage:{n:'Гараж',when:'после покупки',why:'Гараж откроется после первой покупки машины.',ok:()=>S.garage.length>0||S.stats.deals>0,hint:'Тут твои тачки: мой, чини и жми «Продать».'},
+ chats:{n:'Чаты',when:'после объявл.',why:'Чаты откроются, когда выставишь тачку на продажу.',ok:()=>S.garage.some(c=>c.listed)||S.inbox.length>0,hint:'Сюда пишут покупатели — торгуйся и продавай.'},
+ shop:{n:'Мастерская',when:'со 2-го дня',why:'Мастерская откроется со 2-го дня. Жми «Спать», когда закончишь день.',ok:()=>S.day>=2,hint:'В Гараже жми «🔧 Мастерская»: мойка, ремонт, тюнинг — тачка дороже.'},
+ auction:{n:'Аукцион',when:'со 2-го дня',why:'Аукцион откроется со 2-го дня. Жми «Спать», когда закончишь день.',ok:()=>S.day>=2,hint:'Аукцион: тачки под тентом — платишь и срываешь тент.'},
+};
+const appOn=k=>!UNL[k]||!!(S.apps&&S.apps[k]);
+function checkApps(){
+  if(!S.apps)S.apps={};const nw=Object.keys(UNL).filter(k=>!S.apps[k]&&UNL[k].ok());if(!nw.length)return;
+  ui.newApps=ui.newApps||{};for(const k of nw){S.apps[k]=1;ui.newApps[k]=1}save();
+  push(nw.includes('shop')?'garage':nw[0],'🔓 Открыто: '+nw.map(k=>UNL[k].n).join(' и '),nw.map(k=>UNL[k].hint).join(' '),null,true);
+}
 
 /* ================= ОБУЧЕНИЕ ================= */
 const TUT=[
@@ -826,7 +845,7 @@ const EVENTS=[
 function fireEvent(){const pool=EVENTS.filter(e=>e.ok());if(!pool.length)return;const e=pick(pool).make();ui.ov={k:'event',e};snd('push');render()}
 
 /* ================= ОТРИСОВКА ================= */
-function render(){renderStatus();renderScreen();renderDock();renderOv()}
+function render(){checkApps();renderStatus();renderScreen();renderDock();renderOv()}
 function renderStatus(){
   const night=S.time>720;
   document.getElementById('status').innerHTML=`<span class="l"><span class="clock">${fmtT(S.time)}</span><span style="color:var(--muted);font-size:12px">${night?'🌙':''} День ${S.day}</span></span>
@@ -836,7 +855,7 @@ function renderDock(){
   const unread=S.inbox.filter(b=>b.unread&&isOpen(b)).length+S.board.filter(x=>x.unread).length;
   const fresh=S.board.filter(x=>!x.gone&&!x.seen).length;
   const target=S.tut<TUT.length?TUT[S.tut][2]:null;
-  document.getElementById('dock').innerHTML=['home','bazar','chats','garage','auction'].map(k=>`<button data-a="tab" data-x="${k}" class="${ui.tab===k?'on':''}"><span class="app ${target===k&&ui.tab!==k?'pulse':''}" style="background:${APPS[k].bg}">${APPS[k].i}</span>${APPS[k].n}${k==='chats'&&unread?`<span class="badge">${unread}</span>`:''}${k==='bazar'&&fresh?`<span class="badge">${fresh}</span>`:''}</button>`).join('');
+  document.getElementById('dock').innerHTML=['home','bazar','chats','garage','auction'].map(k=>{const lk=!appOn(k),nw=ui.newApps&&ui.newApps[k];return`<button data-a="tab" data-x="${k}" class="${ui.tab===k?'on':''}${lk?' lk':''}"><span class="app ${!lk&&(target===k||nw)&&ui.tab!==k?'pulse':''}" style="background:${APPS[k].bg}">${APPS[k].i}</span>${APPS[k].n}${lk?`<small>${UNL[k].when}</small><i class="lkI">🔒</i>`:''}${!lk&&k==='chats'&&unread?`<span class="badge">${unread}</span>`:''}${k==='bazar'&&fresh?`<span class="badge">${fresh}</span>`:''}</button>`}).join('');
 }
 function renderScreen(){
   CVQ=[];
@@ -901,7 +920,7 @@ function vGarage(){
      ${c.listed?`<span class="row"><span class="tag good">👁 ${Math.floor(c.views)}</span><span class="tag good">💬 ${open}</span><span class="m">за ${rub(c.listed)}</span>${c.boost===S.day?'<span class="tag gold">блогер ×2</span>':''}</span>`:''}
      ${known.map(d=>`<div class="def ${d.fixed?'fixed':''}"><span>${cap(DEF[d.id].n)}</span>${d.fixed?'<span class="tag good">сделано</span>':DEF[d.id].fix?'<span class="tag">в мастерскую</span>':'<span class="tag bad">не чинится</span>'}</div>`).join('')}
      <div class="row">
-      <button class="btn grow ${S.tut===2?'pulse':''}" data-a="shop" data-x="${c.uid}">🔧 Мастерская<small>ремонт · покраска · тюнинг</small></button>
+      ${appOn('shop')?`<button class="btn grow ${S.tut===2||(ui.newApps&&ui.newApps.shop)?'pulse':''}" data-a="shop" data-x="${c.uid}">🔧 Мастерская<small>ремонт · покраска · тюнинг</small></button>`:`<button class="btn grow lockd" data-a="locked" data-x="shop">🔒 Мастерская<small>${UNL.shop.when}</small></button>`}
       ${c.listed?`<button class="btn grow" data-a="unlist" data-x="${c.uid}">Снять</button>`:`<button class="btn main grow ${S.tut===3?'pulse':''}" data-a="sellopen" data-x="${c.uid}">Продать</button>`}
       <button class="btn warn" data-a="scrap" data-x="${c.uid}">${ui.scrapArm===c.uid?'Точно?':'Разбор'}<small>${rub(k1(model(c).base*.2))}</small></button>
      </div></div></div>`;
@@ -1030,7 +1049,7 @@ function buy(L0){
   L0.msgs.push({w:'me',t:'Беру. Еду с наличкой.',ts:Date.now()});saySys(L0,`Сделка! ${mname(L0.car)} едет к тебе в гараж.`,'ok');
   if(L0.car.defs.some(d=>d.id==='ban')){saySys(L0,'…документы ты так и не проверил.','no')}
   snd('coin');
-  if(S.tut<=2){S.tut=2;setTimeout(()=>{closeOv();goTab('garage')},900)}
+  if(S.tut<=2){S.tut=appOn('shop')?2:3;setTimeout(()=>{closeOv();goTab('garage')},900)}
 }
 function openInsp(L0){L0.used.insp=true;L0.ins={left:3+S.eye,res:{},ad:false,pts:null,scan:null};ui.ov={k:'insp',id:L0.uid}}
 function ovInsp(L0){
@@ -1277,10 +1296,11 @@ function openLot(cls,cost){
 /* ================= ДЕЙСТВИЯ ================= */
 function commit(){checkUnlock();save();render()}
 function closeOv(){ui.ov=null;ui.sell=null;render()}
-function goTab(t){if(t==='bazar'&&S.tut===0)S.tut=1;ui.tab=t;ui.scrapArm=null;render();document.getElementById('screen').scrollTop=0}
+function goTab(t){if(t==='bazar'&&S.tut===0)S.tut=1;if(ui.newApps)delete ui.newApps[t];ui.tab=t;ui.scrapArm=null;render();document.getElementById('screen').scrollTop=0}
 function checkUnlock(){for(let i=S.cls+1;i<CLASSES.length;i++){if(CLASSES[i].soon)break;if(capital()>=CLASSES[i].need){S.cls=i;confetti();snd('win');toast(`Открыт класс «${CLASSES[i].name}»! Ищи такие тачки на Барахолке и Аукционе.`)}}}
 const A={
- tab:x=>goTab(x),
+ tab:x=>appOn(x)?goTab(x):toast('🔒 '+UNL[x].why),
+ locked:x=>toast('🔒 '+UNL[x].why),
  sound:()=>{S.sound=!S.sound;save();renderStatus();if(S.sound)snd('msg')},
  sleep:()=>{S.time=900;ui.ov={k:'summary'};snd('win');render()},
  morning:()=>{S.day++;startDay(false);ui.ov=null;save();render();toast(`День ${S.day}. ${S.news.up.t}.`)},
@@ -1314,7 +1334,7 @@ const A={
  slot:()=>{const p=[40000,120000,300000,800000][S.slots-2];if(S.money<p)return toast(`Не хватает ${rub(p-S.money)}.`);S.money-=p;S.slots++;snd('win');toast('Гараж стал больше!');commit()},
  eye:()=>{const p=[80000,250000][S.eye];if(S.money<p)return toast(`Не хватает ${rub(p-S.money)}.`);S.money-=p;S.eye++;snd('win');toast('Глаз намётан: +1 действие на осмотре.');commit()},
  lot:x=>openLot(+x,CLASSES[+x].lot),
- shop:x=>{ui.ov={k:'shop',id:+x};ui.shopTab=ui.shopTab||'repair';render()},
+ shop:x=>{if(ui.newApps)delete ui.newApps.shop;ui.ov={k:'shop',id:+x};ui.shopTab=ui.shopTab||'repair';render()},
  toshop:()=>{ui.ov={k:'shop',id:ui.ov.id};render()},
  stab:x=>{ui.shopTab=x;renderOv()},
  album:()=>{ui.ov={k:'album'};render()},
@@ -1349,6 +1369,7 @@ function start(data){
   S=(data&&data.v===2)?data:load();
   if(!S)newGame();
   if(!S.album){S.album={};for(const c of S.garage)S.album[c.m]=1}
+  if(!S.apps){const old=S.tut>0||S.day>1||S.garage.length>0||S.stats.deals>0;S.apps=old?{garage:1,chats:1,shop:1,auction:1}:{}}
   if(!S.quests)S.quests=genQuests();
   if(!ui.ov)dailyGift();
   window.claude?.hot?.snapshot?.(()=>S);
