@@ -156,16 +156,16 @@ button:focus-visible{outline:3px solid var(--lemon);outline-offset:2px}
 </style>
 
 <div id="app">
-  <button class="snd" id="snd" data-a="sound" aria-label="Звук">🔊</button>
+  <button class="snd" id="snd" data-a="sound" aria-label="">🔊</button>
   <div class="top"><div class="coins" id="coins">0</div><div class="rate" id="rate"></div></div>
   <div class="hint" id="hint" hidden></div>
   <div class="board" id="board"></div>
   <div class="bar">
-    <button class="egg" id="egg" data-a="egg">🥚 Купить яйцо <small id="eggp"></small></button>
+    <button class="egg" id="egg" data-a="egg">🥚 <span data-t="buyEgg">Купить яйцо</span> <small id="eggp"></small></button>
     <div class="row">
-      <button class="sb" data-a="shop"><i>⚡</i>Улучшения<span class="dot" id="shopdot" hidden></span></button>
-      <button class="sb" data-a="coll"><i>📖</i><span id="colln">Коллекция</span></button>
-      <button class="sb ad" data-a="x2"><i>🚀</i><span id="x2t">×2 доход</span></button>
+      <button class="sb" data-a="shop"><i>⚡</i><span data-t="shop">Улучшения</span><span class="dot" id="shopdot" hidden></span></button>
+      <button class="sb" data-a="coll"><i>📖</i><span id="colln"></span></button>
+      <button class="sb ad" data-a="x2"><i>🚀</i><span id="x2t"></span></button>
     </div>
   </div>
   <div id="ov" hidden></div>
@@ -180,36 +180,73 @@ const YSDK={sdk:null,player:null,onMute:()=>{},
  ready(){try{this.sdk&&this.sdk.features.LoadingAPI&&this.sdk.features.LoadingAPI.ready()}catch(e){}},
  start(){try{this.sdk&&this.sdk.features.GameplayAPI&&this.sdk.features.GameplayAPI.start()}catch(e){}},
  stop(){try{this.sdk&&this.sdk.features.GameplayAPI&&this.sdk.features.GameplayAPI.stop()}catch(e){}},
- rewarded(cb,el){if(!this.sdk){let n=3;this.onMute(true);el.innerHTML=`<div><b>${n}</b>Здесь будет реклама Яндекса за награду</div>`;el.hidden=false;const t=setInterval(()=>{n--;if(n<=0){clearInterval(t);el.hidden=true;this.onMute(false);cb()}else el.querySelector('b').textContent=n},650);return}
+ lang(){try{return this.sdk&&this.sdk.environment.i18n.lang}catch(e){return null}},
+ rewarded(cb,el){if(!this.sdk){let n=3;this.onMute(true);el.innerHTML=`<div><b>${n}</b>${t('adStub')}</div>`;el.hidden=false;const iv=setInterval(()=>{n--;if(n<=0){clearInterval(iv);el.hidden=true;this.onMute(false);cb()}else el.querySelector('b').textContent=n},650);return}
   let got=false;this.sdk.adv.showRewardedVideo({callbacks:{onOpen:()=>this.onMute(true),onRewarded:()=>got=true,onClose:()=>{this.onMute(false);if(got)cb()},onError:()=>this.onMute(false)}})},
  async save(k,d){try{localStorage.setItem(k,JSON.stringify(d))}catch(e){}try{this.player&&await this.player.setData({[k]:d},false)}catch(e){}},
  async load(k){try{if(this.player){const d=await this.player.getData([k]);if(d&&d[k])return d[k]}}catch(e){}try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},
 };
 
-/* ===== Брейнроты (свои персонажи, без чужих брендов) ===== */
+/* ===== Язык: RU/EN (язык из SDK: ysdk.environment.i18n.lang; без SDK — navigator.language) ===== */
+const T={
+ ru:{
+  title:'Мемоферма: скрести брейнротов',sound:'Звук',buyEgg:'Купить яйцо',shop:'Улучшения',coll:'Коллекция',x2:'×2 доход',x2more:'Ещё ×2',
+  perSec:'в секунду',boostLeft:s=>`🚀 ×2 ещё ${s} с`,farmFull:'ферма заполнена — скрещивай!',
+  tips:['Жми «Купить яйцо» — вылупится первый брейнрот.','Купи ещё одно яйцо.','Перетащи брейнрота на такого же — они скрестятся в нового!'],
+  tiers:['обычный','редкий','эпический','легендарный'],
+  mn:['Хлебушек-наблюдатель','Банан-шпион','Кот-кофеварка','Акула в кроссах','Огурец-диджей','Утка-самолёт','Пельмень-боксёр','Жираф-смартфон','Арбуз-байкер','Лягушка-миллионер','Лебедь-ракета','Туфля-король','Пончик-планета','Великий Каменюк'],
+  ms:['Хлеб видит всё.','Банананана, я под прикрытием.','Мяу-эспрессо!','Тра-ла-ла, бегу по суше!','Ставлю огурцовый бит.','Кря-кря, взлетаем!','Сварю тебя за раунд.','Длинная шея — сеть ловит.','Ж-ж-жуй и гони!','Ква-ква, кэш на кэш.','Тунг-тунг-тунг… старт!','На колени перед обувью!','Космос сладкий.','…'],
+  shMult:'Доход ×2',shMultD:'все брейнроты фармят вдвое больше',shEgg:'Яйца покруче',shEggD:n=>`из яйца сразу ${n}-й уровень`,shRow:'Расширить ферму',shRowD:'+4 грядки',
+  shLocked:'открой брейнротов повыше',shMax:'максимум',bought:n=>`${n}: готово!`,
+  newMeme:'Новый брейнрот!',memeInfo:(tr,l,n,inc)=>`${tr} · №${l} из ${n} · фармит ${inc} 🪙/с`,cool:'Круто!',close:'Закрыть',
+  collHint:'Скрещивай одинаковых, чтобы открыть следующих. Последний — легендарный.',
+  maxMeme:'Это максимальный брейнрот!',ufo:'Поймать тарелку',ufoGot:g=>`Поймал мем-тарелку! +${g} 🪙`,
+  away:'Пока тебя не было…',awayM:m=>`брейнроты фармили ${m} мин без тебя`,x3ad:'×3 за рекламу',take:'Забрать',
+  daily:n=>`Подарок дня · серия ${n}`,dailyM:'Заходи каждый день — подарок растёт до 7-го дня.',
+  boostOn:'🚀 Доход ×2 на 3 минуты!',adStub:'Здесь будет реклама Яндекса за награду',
+  q:['«','»'],num:'ru-RU',units:[' трлн',' млрд',' млн',' тыс'],dec:','
+ },
+ en:{
+  title:'Meme Farm: merge brainrots',sound:'Sound',buyEgg:'Buy egg',shop:'Upgrades',coll:'Collection',x2:'×2 income',x2more:'More ×2',
+  perSec:'per second',boostLeft:s=>`🚀 ×2 for ${s} s`,farmFull:'farm is full, merge!',
+  tips:['Tap "Buy egg" to hatch your first brainrot.','Buy one more egg.','Drag a brainrot onto an identical one to merge them into a new one!'],
+  tiers:['common','rare','epic','legendary'],
+  mn:['Watcher Bread','Spy Banana','Coffee Cat','Sneaker Shark','DJ Cucumber','Plane Duck','Boxer Dumpling','Phone Giraffe','Biker Watermelon','Millionaire Frog','Rocket Swan','King Shoe','Donut Planet','Great Stone Head'],
+  ms:['Bread sees everything.','Bananana, I am undercover.','Meow-spresso!','Tra-la-la, running on land!','Dropping a cucumber beat.','Quack-quack, takeoff!','One round and you are boiled.','Long neck, full signal.','Vroom-vroom, chew and zoom!','Ribbit, cash on cash.','Tung-tung-tung… liftoff!','Kneel before the shoe!','Space is sweet.','…'],
+  shMult:'Income ×2',shMultD:'all brainrots farm twice as much',shEgg:'Better eggs',shEggD:n=>`eggs hatch at level ${n}`,shRow:'Bigger farm',shRowD:'+4 plots',
+  shLocked:'unlock higher brainrots',shMax:'maxed out',bought:n=>`${n}: done!`,
+  newMeme:'New brainrot!',memeInfo:(tr,l,n,inc)=>`${tr} · #${l} of ${n} · farms ${inc} 🪙/s`,cool:'Cool!',close:'Close',
+  collHint:'Merge identical ones to unlock the next. The last one is legendary.',
+  maxMeme:'This is the top brainrot!',ufo:'Catch the saucer',ufoGot:g=>`Caught the meme saucer! +${g} 🪙`,
+  away:'While you were away…',awayM:m=>`brainrots farmed ${m} min without you`,x3ad:'×3 for an ad',take:'Collect',
+  daily:n=>`Daily gift · streak ${n}`,dailyM:'Come back every day: the gift grows until day 7.',
+  boostOn:'🚀 Income ×2 for 3 minutes!',adStub:'A rewarded Yandex ad will play here',
+  q:['“','”'],num:'en-US',units:['T','B','M','K'],dec:'.'
+ }
+};
+let LANG='ru';
+const t=(k,...a)=>{const v=(T[LANG]&&T[LANG][k]!==undefined)?T[LANG][k]:T.ru[k];return typeof v==='function'?v(...a):v};
+function setLang(code){
+  const c=String(code||'').toLowerCase().slice(0,2);
+  LANG=['ru','be','kk','uk','uz'].includes(c)?'ru':'en';
+  document.documentElement.lang=LANG;document.title=t('title');
+  document.querySelectorAll('[data-t]').forEach(e=>e.textContent=t(e.dataset.t));
+  const sb=document.getElementById('snd');if(sb)sb.setAttribute('aria-label',t('sound'));
+}
+setLang(navigator.language||(navigator.languages&&navigator.languages[0]));
+
+/* ===== Брейнроты (свои персонажи, без чужих брендов); имена и фразы — в словаре T ===== */
 const MEMES=[
- {n:'Хлебушек-наблюдатель',b:'🍞',a:'👀',s:'Хлеб видит всё.'},
- {n:'Банан-шпион',b:'🍌',a:'🕶️',s:'Банананана, я под прикрытием.'},
- {n:'Кот-кофеварка',b:'🐱',a:'☕',s:'Мяу-эспрессо!'},
- {n:'Акула в кроссах',b:'🦈',a:'👟',s:'Тра-ла-ла, бегу по суше!'},
- {n:'Огурец-диджей',b:'🥒',a:'🎧',s:'Ставлю огурцовый бит.'},
- {n:'Утка-самолёт',b:'🦆',a:'✈️',s:'Кря-кря, взлетаем!'},
- {n:'Пельмень-боксёр',b:'🥟',a:'🥊',s:'Сварю тебя за раунд.'},
- {n:'Жираф-смартфон',b:'🦒',a:'📱',s:'Длинная шея — сеть ловит.'},
- {n:'Арбуз-байкер',b:'🍉',a:'🏍️',s:'Ж-ж-жуй и гони!'},
- {n:'Лягушка-миллионер',b:'🐸',a:'💰',s:'Ква-ква, кэш на кэш.'},
- {n:'Лебедь-ракета',b:'🦢',a:'🚀',s:'Тунг-тунг-тунг… старт!'},
- {n:'Туфля-король',b:'🥿',a:'👑',s:'На колени перед обувью!'},
- {n:'Пончик-планета',b:'🍩',a:'🪐',s:'Космос сладкий.'},
- {n:'Великий Каменюк',b:'🗿',a:'🔥',s:'…'},
+ {b:'🍞',a:'👀'},{b:'🍌',a:'🕶️'},{b:'🐱',a:'☕'},{b:'🦈',a:'👟'},{b:'🥒',a:'🎧'},{b:'🦆',a:'✈️'},{b:'🥟',a:'🥊'},
+ {b:'🦒',a:'📱'},{b:'🍉',a:'🏍️'},{b:'🐸',a:'💰'},{b:'🦢',a:'🚀'},{b:'🥿',a:'👑'},{b:'🍩',a:'🪐'},{b:'🗿',a:'🔥'},
 ];
+MEMES.forEach((m,i)=>Object.defineProperties(m,{n:{get:()=>t('mn')[i]},s:{get:()=>t('ms')[i]}}));
 const tier=l=>l<=4?0:l<=8?1:l<=12?2:3;
-const TIERN=['обычный','редкий','эпический','легендарный'];
 const inc=l=>Math.round(Math.pow(2.45,l-1));
 
 /* ===== Утилиты ===== */
 const R=(a,b)=>a+Math.random()*(b-a);
-const fmt=n=>{n=Math.floor(n);if(n<1e4)return n.toLocaleString('ru-RU');const u=[[1e12,' трлн'],[1e9,' млрд'],[1e6,' млн'],[1e3,' тыс']];for(const[v,s]of u)if(n>=v)return (n/v).toFixed(n/v<10?2:n/v<100?1:0).replace('.',',')+s;return String(n)};
+const fmt=n=>{n=Math.floor(n);if(n<1e4)return n.toLocaleString(t('num'));const U=t('units'),u=[[1e12,U[0]],[1e9,U[1]],[1e6,U[2]],[1e3,U[3]]];for(const[v,s]of u)if(n>=v)return (n/v).toFixed(n/v<10?2:n/v<100?1:0).replace('.',t('dec'))+s;return String(n)};
 const $=id=>document.getElementById(id);
 let toastT;function toast(t){const e=$('toast');e.textContent=t;e.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>e.hidden=true,2400)}
 
@@ -232,9 +269,9 @@ function fresh(){return{v:1,coins:30,cells:Array(16).fill(0),rows:4,eggs:0,eggLv
 const income=()=>S.cells.reduce((a,l)=>a+(l?inc(l):0),0)*S.mult*(Date.now()<S.boostUntil?2:1);
 const eggPrice=()=>Math.round(10*Math.pow(1.13,S.eggs)*Math.pow(2.45,S.eggLvl-1));
 const SHOP=[
- {id:'mult',n:'Доход ×2',d:'все брейнроты фармят вдвое больше',price:()=>Math.round(400*Math.pow(9,S.multLv)),ok:()=>S.multLv<8,buy:()=>{S.multLv++;S.mult*=2}},
- {id:'egg',n:'Яйца покруче',d:()=>`из яйца сразу ${S.eggLvl+1}-й уровень`,price:()=>Math.round(1500*Math.pow(18,S.eggLvl-1)),ok:()=>S.eggLvl<6&&Math.max(0,...S.disc)>=S.eggLvl+3,buy:()=>{S.eggLvl++}},
- {id:'row',n:'Расширить ферму',d:'+4 грядки',price:()=>S.rows===4?2500:S.rows===5?60000:0,ok:()=>S.rows<6,buy:()=>{S.rows++;S.cells.push(0,0,0,0)}},
+ {id:'mult',get n(){return t('shMult')},d:()=>t('shMultD'),price:()=>Math.round(400*Math.pow(9,S.multLv)),ok:()=>S.multLv<8,buy:()=>{S.multLv++;S.mult*=2}},
+ {id:'egg',get n(){return t('shEgg')},d:()=>t('shEggD',S.eggLvl+1),price:()=>Math.round(1500*Math.pow(18,S.eggLvl-1)),ok:()=>S.eggLvl<6&&Math.max(0,...S.disc)>=S.eggLvl+3,buy:()=>{S.eggLvl++}},
+ {id:'row',get n(){return t('shRow')},d:()=>t('shRowD'),price:()=>S.rows===4?2500:S.rows===5?60000:0,ok:()=>S.rows<6,buy:()=>{S.rows++;S.cells.push(0,0,0,0)}},
 ];
 
 /* ===== Отрисовка ===== */
@@ -247,16 +284,16 @@ function renderBoard(){
 function renderHUD(){
   $('coins').textContent=fmt(S.coins)+' 🪙';
   const boost=Date.now()<S.boostUntil;
-  $('rate').innerHTML=`<b>+${fmt(income())}</b> в секунду${boost?` · <span class="boost">🚀 ×2 ещё ${Math.ceil((S.boostUntil-Date.now())/1000)} с</span>`:''}`;
+  $('rate').innerHTML=`<b>+${fmt(income())}</b> ${t('perSec')}${boost?` · <span class="boost">${t('boostLeft',Math.ceil((S.boostUntil-Date.now())/1000))}</span>`:''}`;
   const p=eggPrice(),full=!S.cells.includes(0);
-  $('eggp').textContent=full?'ферма заполнена — скрещивай!':`${fmt(p)} 🪙`;
+  $('eggp').textContent=full?t('farmFull'):`${fmt(p)} 🪙`;
   $('egg').disabled=full||S.coins<p;
-  $('colln').textContent=`Коллекция ${S.disc.length}/${MEMES.length}`;
+  $('colln').textContent=`${t('coll')} ${S.disc.length}/${MEMES.length}`;
   $('shopdot').hidden=!SHOP.some(s=>s.ok()&&S.coins>=s.price());
-  $('x2t').textContent=boost?'Ещё ×2':'×2 доход';
+  $('x2t').textContent=boost?t('x2more'):t('x2');
   $('snd').textContent=S.sound?'🔊':'🔇';
   const h=$('hint');
-  const tips=['Жми «Купить яйцо» — вылупится первый брейнрот.','Купи ещё одно яйцо.','Перетащи брейнрота на такого же — они скрестятся в нового!'];
+  const tips=t('tips');
   if(S.tut<3){h.textContent=tips[S.tut];h.hidden=false}else h.hidden=true;
 }
 function cellEl(i){return document.querySelector(`.cell[data-i="${i}"]`)}
@@ -269,13 +306,13 @@ function openOv(html){const o=$('ov');o.innerHTML=`<div class="sheet">${html}</d
 function closeOv(){$('ov').hidden=true;$('ov').innerHTML=''}
 function showDiscover(l){
   const m=MEMES[l-1];snd('fan');confetti();
-  openOv(`<h2>Новый брейнрот!</h2><div class="big">${crHTML(l)}<b style="font-size:22px">${m.n}</b><span class="say">«${m.s}»</span><span class="m">${TIERN[tier(l)]} · №${l} из ${MEMES.length} · фармит ${fmt(inc(l)*S.mult)} 🪙/с</span></div><button class="btn main" data-a="close">Круто!</button>`);
+  openOv(`<h2>${t('newMeme')}</h2><div class="big">${crHTML(l)}<b style="font-size:22px">${m.n}</b><span class="say">${t('q')[0]}${m.s}${t('q')[1]}</span><span class="m">${t('memeInfo',t('tiers')[tier(l)],l,MEMES.length,fmt(inc(l)*S.mult))}</span></div><button class="btn main" data-a="close">${t('cool')}</button>`);
 }
 function showShop(){
-  openOv(`<h2>Улучшения</h2>${SHOP.map(s=>{const ok=s.ok(),p=s.price();return`<button class="btn ${ok&&S.coins>=p?'main':''}" data-a="buy" data-x="${s.id}" ${!ok||S.coins<p?'disabled':''}>${s.n}<small>${typeof s.d==='function'?s.d():s.d} · ${ok?fmt(p)+' 🪙':s.id==='egg'?'открой брейнротов повыше':'максимум'}</small></button>`}).join('')}<button class="btn" data-a="close">Закрыть</button>`);
+  openOv(`<h2>${t('shop')}</h2>${SHOP.map(s=>{const ok=s.ok(),p=s.price();return`<button class="btn ${ok&&S.coins>=p?'main':''}" data-a="buy" data-x="${s.id}" ${!ok||S.coins<p?'disabled':''}>${s.n}<small>${typeof s.d==='function'?s.d():s.d} · ${ok?fmt(p)+' 🪙':s.id==='egg'?t('shLocked'):t('shMax')}</small></button>`}).join('')}<button class="btn" data-a="close">${t('close')}</button>`);
 }
 function showColl(){
-  openOv(`<h2>Коллекция ${S.disc.length}/${MEMES.length}</h2><div class="coll">${MEMES.map((m,i)=>{const has=S.disc.includes(i+1);return`<div class="it ${has?'':'unk'}">${crHTML(i+1)}<span>${has?m.n:'???'}</span></div>`}).join('')}</div><span class="m" style="text-align:center">Скрещивай одинаковых, чтобы открыть следующих. Последний — легендарный.</span><button class="btn" data-a="close">Закрыть</button>`);
+  openOv(`<h2>${t('coll')} ${S.disc.length}/${MEMES.length}</h2><div class="coll">${MEMES.map((m,i)=>{const has=S.disc.includes(i+1);return`<div class="it ${has?'':'unk'}">${crHTML(i+1)}<span>${has?m.n:'???'}</span></div>`}).join('')}</div><span class="m" style="text-align:center">${t('collHint')}</span><button class="btn" data-a="close">${t('close')}</button>`);
 }
 
 /* ===== Логика ===== */
@@ -287,7 +324,7 @@ function buyEgg(){
   if(S.tut<2)S.tut++;renderBoard();renderHUD();save();
 }
 function merge(from,to){
-  const l=S.cells[from];if(l>=MEMES.length){toast('Это максимальный брейнрот!');return false}
+  const l=S.cells[from];if(l>=MEMES.length){toast(t('maxMeme'));return false}
   S.cells[from]=0;S.cells[to]=l+1;ui.popI=to;
   const bonus=inc(l+1)*5*S.mult;S.coins+=bonus;S.total+=bonus;
   renderBoard();const el=cellEl(to);sparks(el);floatAt(el,'+'+fmt(bonus),'#ffe14a');snd('pop',l);
@@ -325,22 +362,22 @@ function tapCreature(i){
 /* летающая тарелка */
 function ufo(){
   if(!$('ov').hidden||S.tut<3)return;
-  const u=document.createElement('button');u.className='ufo';u.textContent='🛸';u.setAttribute('aria-label','Поймать тарелку');
-  u.onclick=()=>{const g=Math.max(50,Math.round(income()*40));S.coins+=g;S.total+=g;floatAt(u,'+'+fmt(g),'#43e6ff');sparks(u,20);snd('coin');u.remove();toast(`Поймал мем-тарелку! +${fmt(g)} 🪙`);renderHUD();save()};
+  const u=document.createElement('button');u.className='ufo';u.textContent='🛸';u.setAttribute('aria-label',t('ufo'));
+  u.onclick=()=>{const g=Math.max(50,Math.round(income()*40));S.coins+=g;S.total+=g;floatAt(u,'+'+fmt(g),'#43e6ff');sparks(u,20);snd('coin');u.remove();toast(t('ufoGot',fmt(g)));renderHUD();save()};
   $('app').appendChild(u);setTimeout(()=>u.remove(),9000);
 }
 /* офлайн-доход и подарок */
 function offline(){
   const sec=Math.min(7200,(Date.now()-(S.last||Date.now()))/1000);S.last=Date.now();
   const base=S.cells.reduce((a,l)=>a+(l?inc(l):0),0)*S.mult;const g=Math.round(base*sec*.5);
-  if(sec>60&&g>0){openOv(`<h2>Пока тебя не было…</h2><div class="big"><span style="font-size:64px">😴</span><b style="font-size:24px;color:var(--lemon)">+${fmt(g)} 🪙</b><span class="m">брейнроты фармили ${Math.round(sec/60)} мин без тебя</span></div><button class="btn ad" data-a="off3" data-x="${g}">×3 за рекламу<small>+${fmt(g*3)} 🪙</small></button><button class="btn" data-a="off1" data-x="${g}">Забрать</button>`);return true}
+  if(sec>60&&g>0){openOv(`<h2>${t('away')}</h2><div class="big"><span style="font-size:64px">😴</span><b style="font-size:24px;color:var(--lemon)">+${fmt(g)} 🪙</b><span class="m">${t('awayM',Math.round(sec/60))}</span></div><button class="btn ad" data-a="off3" data-x="${g}">${t('x3ad')}<small>+${fmt(g*3)} 🪙</small></button><button class="btn" data-a="off1" data-x="${g}">${t('take')}</button>`);return true}
   return false;
 }
 function daily(){
   const d=new Date(),today=d.toISOString().slice(0,10),y=new Date(d-864e5).toISOString().slice(0,10);if(S.realLast===today)return false;
   S.streak=S.realLast===y?S.streak+1:1;S.realLast=today;if(S.tut<3)return false;
   const g=Math.max(200,Math.round(income()*60*Math.min(7,S.streak)));S.coins+=g;
-  openOv(`<h2>Подарок дня · серия ${S.streak}</h2><div class="big"><span style="font-size:64px">🎁</span><b style="font-size:24px;color:var(--lemon)">+${fmt(g)} 🪙</b><span class="m">Заходи каждый день — подарок растёт до 7-го дня.</span></div><button class="btn main" data-a="close">Забрать</button>`);snd('fan');return true;
+  openOv(`<h2>${t('daily',S.streak)}</h2><div class="big"><span style="font-size:64px">🎁</span><b style="font-size:24px;color:var(--lemon)">+${fmt(g)} 🪙</b><span class="m">${t('dailyM')}</span></div><button class="btn main" data-a="close">${t('take')}</button>`);snd('fan');return true;
 }
 function save(){S.last=Date.now();YSDK.save(KEY,S)}
 
@@ -348,8 +385,8 @@ function save(){S.last=Date.now();YSDK.save(KEY,S)}
 const A={
  egg:buyEgg,
  shop:showShop,coll:showColl,close:closeOv,
- buy:x=>{const s=SHOP.find(z=>z.id===x);const p=s.price();if(!s.ok()||S.coins<p)return;S.coins-=p;s.buy();snd('fan');confetti();toast(`${s.n}: готово!`);renderBoard();renderHUD();save();showShop()},
- x2:()=>YSDK.rewarded(()=>{S.boostUntil=Math.max(Date.now(),S.boostUntil)+180000;toast('🚀 Доход ×2 на 3 минуты!');snd('fan');renderHUD();save()},$('adov')),
+ buy:x=>{const s=SHOP.find(z=>z.id===x);const p=s.price();if(!s.ok()||S.coins<p)return;S.coins-=p;s.buy();snd('fan');confetti();toast(t('bought',s.n));renderBoard();renderHUD();save();showShop()},
+ x2:()=>YSDK.rewarded(()=>{S.boostUntil=Math.max(Date.now(),S.boostUntil)+180000;toast(t('boostOn'));snd('fan');renderHUD();save()},$('adov')),
  off1:x=>{S.coins+=+x;closeOv();snd('coin');renderHUD();save()},
  off3:x=>YSDK.rewarded(()=>{S.coins+=+x*3;closeOv();snd('fan');confetti();renderHUD();save()},$('adov')),
  sound:()=>{S.sound=!S.sound;renderHUD();save()},
@@ -361,6 +398,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){save();try
 /* ===== Старт ===== */
 (async()=>{
   await YSDK.init(m=>{muted=m;try{m?AC&&AC.suspend():AC&&AC.resume()}catch(e){}});
+  if(YSDK.sdk)setLang(YSDK.lang()||navigator.language);
   const d=await YSDK.load(KEY);S=d&&d.v===1?d:fresh();
   if(!S.disc.length&&S.cells.some(Boolean))S.disc=[...new Set(S.cells.filter(Boolean))];
   renderBoard();renderHUD();
