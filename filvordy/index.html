@@ -107,6 +107,7 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 #adov b{font-size:46px;display:block;margin-bottom:8px;color:var(--gold)}
 .shake{animation:shake .35s}
 @keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+#vkinv{grid-column:1/-1;padding:9px}
 .snd{font-size:18px;background:var(--paper);border:2px solid var(--line);border-radius:12px;padding:4px 8px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -122,6 +123,7 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
   <div class="bar">
     <button class="btn" id="hintb" data-a="hint">💡 Подсказка<small>30 монет</small></button>
     <button class="btn main" data-a="adhint">🎬 Подсказка<small>за рекламу</small></button>
+    <button class="btn" id="vkinv" data-a="vkinv" hidden>👥 Позвать друга<small id="vkinvs"></small></button>
   </div>
   <div id="ov" hidden></div>
   <div id="toast" hidden></div>
@@ -222,6 +224,7 @@ function render(){
   $('words').innerHTML=L.words.map(w=>`<span class="w ${w.f?'f':''}" style="${w.f?`background:${w.c}`:''}">${w.w}</span>`).join('');
   $('cur').textContent=sel.map(i=>L.grid[i]).join('').toUpperCase();
   $('hintb').disabled=S.coins<30;
+  $('vkinv').hidden=!vkOn();$('vkinvs').textContent=S.invDay===dayKey()?'спасибо! подарок — завтра снова':'подсказка в подарок · раз в день';
 }
 function paintSel(){document.querySelectorAll('.c').forEach(e=>e.classList.toggle('sel',sel.includes(+e.dataset.i)));$('cur').textContent=sel.map(i=>L.grid[i]).join('').toUpperCase()}
 
@@ -255,12 +258,18 @@ async function win(){
   const doneThemes=new Set();for(let i=1;i<=L.lv;i++)doneThemes.add(THEMES[(i-1)%THEMES.length].n);
   $('ov').innerHTML=`<div class="card"><h2>Уровень ${L.lv} пройден!</h2><div class="stars">${'★'.repeat(st)}<s>${'★'.repeat(3-st)}</s></div><div class="m">+${bonus} монет · всего ${S.coins} 🪙</div>
    <div class="m">Тем пройдено: ${Math.min(doneThemes.size,THEMES.length)} из ${THEMES.length}</div><div class="themes">${THEMES.map(t=>`<span class="${doneThemes.has(t.n)?'done':''}">${t.n}</span>`).join('')}</div>
-   <button class="btn main" data-a="next">Дальше: уровень ${L.lv+1}<small>${THEMES[L.lv%THEMES.length].n}</small></button></div>`;
+   ${vkOn()&&L.lv%5===0?`<button class="btn" data-a="vkshare" data-x="${L.lv}">📣 Поделиться</button>`:''}<button class="btn main" data-a="next">Дальше: уровень ${L.lv+1}<small>${THEMES[L.lv%THEMES.length].n}</small></button></div>`;
   $('ov').hidden=false;S.lv++;S.found=[];save();
 }
 function loadLevel(){L=makeLevel(S.lv);(S.found||[]).forEach(i=>{if(L.words[i])L.words[i].f=true});L.hints=S.lvHints||0;(S.hintArr||[]).forEach((h,i)=>{if(L.words[i])L.words[i].h=h});sel=[];render()}
 function saveProg(){S.found=L.words.map((w,i)=>w.f?i:-1).filter(i=>i>=0);S.lvHints=L.hints||0;S.hintArr=L.words.map(w=>w.h);save()}
 function save(){YSDK.save(KEY,S)}
+/* соцмеханики VK: только если обёртка VK (YSDK.isVK); в Яндексе и на сайте кнопок нет */
+const vkOn=()=>typeof YSDK!=='undefined'&&!!YSDK.isVK;
+const dayKey=()=>new Date().toISOString().slice(0,10);
+function vkShare(lv){if(!vkOn())return;YSDK.share(`Прошёл уже ${lv} уровней в Филвордах! 🧠🔤 Слова сами не найдутся — попробуй обогнать!`).then(ok=>{if(ok)toast('Пост опубликован!')})}
+function vkInvite(){if(!vkOn())return;YSDK.invite().then(ok=>{if(!ok)return;if(S.invDay===dayKey())return toast('Спасибо! Подарок за приглашение — раз в день');
+  S.invDay=dayKey();if(hint())toast('Спасибо за друга! Подсказка открыта 💡');else{S.coins+=30;toast('Спасибо за друга! +30 🪙 на подсказку')}render();save()})}
 function daily(){const d=new Date(),today=d.toISOString().slice(0,10),y=new Date(d-864e5).toISOString().slice(0,10);if(S.realLast===today)return;
   S.streak=S.realLast===y?S.streak+1:1;S.realLast=today;if(S.lv<2)return;const g=20*Math.min(7,S.streak);S.coins+=g;save();
   $('ov').innerHTML=`<div class="card"><h2>С возвращением!</h2><div style="font-size:56px">🎁</div><div class="m">Подарок за ${S.streak}-й день подряд: <b>+${g} монет</b>.<br>Заходите каждый день — подарок растёт.</div><button class="btn main" data-a="close">Спасибо</button></div>`;$('ov').hidden=false}
@@ -271,6 +280,7 @@ const A={
  next:async()=>{$('ov').hidden=true;if((S.lv-1)%2===0)await YSDK.fullscreen();S.lvHints=0;S.hintArr=[];loadLevel();save()},
  close:()=>{$('ov').hidden=true},
  sound:()=>{S.sound=!S.sound;render();save()},
+ vkshare:x=>vkShare(+x),vkinv:vkInvite,
 };
 document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el||el.disabled)return;const f=A[el.dataset.a];if(f)f(el.dataset.x)});
 document.addEventListener('contextmenu',e=>e.preventDefault());

@@ -151,6 +151,7 @@ button:focus-visible{outline:3px solid var(--lemon);outline-offset:2px}
 #adov{position:absolute;inset:0;z-index:50;background:#000;display:grid;place-items:center;text-align:center;padding:24px;font-size:15px}
 #adov b{font-family:var(--display);font-size:46px;display:block;color:var(--lemon);margin-bottom:8px}
 .hint{background:var(--lemon);color:#3a1d00;border-radius:16px;padding:10px 12px;font-size:14px;margin:0 16px;text-align:center}
+.row.vk4{grid-template-columns:repeat(4,1fr)}
 .snd{position:absolute;right:12px;top:calc(10px + env(safe-area-inset-top,0px));font-size:18px;background:rgba(255,255,255,.1);border-radius:12px;padding:4px 8px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}}
 </style>
@@ -162,10 +163,11 @@ button:focus-visible{outline:3px solid var(--lemon);outline-offset:2px}
   <div class="board" id="board"></div>
   <div class="bar">
     <button class="egg" id="egg" data-a="egg">🥚 <span data-t="buyEgg">Купить яйцо</span> <small id="eggp"></small></button>
-    <div class="row">
+    <div class="row" id="sbrow">
       <button class="sb" data-a="shop"><i>⚡</i><span data-t="shop">Улучшения</span><span class="dot" id="shopdot" hidden></span></button>
       <button class="sb" data-a="coll"><i>📖</i><span id="colln"></span></button>
       <button class="sb ad" data-a="x2"><i>🚀</i><span id="x2t"></span></button>
+      <button class="sb" id="vkinv" data-a="vkinv" hidden><i>👥</i><span data-t="vkInv">Позвать</span><span class="dot" id="vkinvdot" hidden></span></button>
     </div>
   </div>
   <div id="ov" hidden></div>
@@ -177,6 +179,8 @@ button:focus-visible{outline:3px solid var(--lemon);outline-offset:2px}
 /* ===== VK Bridge (Игры ВКонтакте) — тот же интерфейс, что у общее/ysdk.js ===== */
 /* Подставляется сборщиком (собрать-релиз.py --vk) вместо копии ysdk.js. Рядом — vk-bridge.min.js (локально, без CDN).
    Интерфейс для игры: YSDK.init(onMute) · ready() · start() · stop() · lang() · fullscreen() · rewarded(cb, el) · save(k, d) · load(k).
+   Соцмеханики (только VK): YSDK.isVK · share(text) → пост на стену со ссылкой на приложение · invite() → окно «пригласить друзей».
+   В ysdk.js (Яндекс) их нет — игра проверяет `typeof YSDK!=='undefined' && YSDK.isVK`, кнопки показывает только в VK.
    Вне VK (bridge не отвечает) — всё через localStorage, реклама за награду — экран-заглушка, ошибок нет.
    Сохранения VK: VKWebAppStorageSet/Get, значение ≤ 4096 байт → режем на куски <ключ>_0..<ключ>_N-1 + <ключ>_n (число кусков). */
 const YSDK = {
@@ -202,6 +206,18 @@ const YSDK = {
       }
     } catch (e) { this.vk = false; }
     document.addEventListener('visibilitychange', () => { if (document.hidden) this._flushAll(); });
+  },
+  get isVK() { return !!this.vk; }, // true только если VKWebAppInit прошёл (вне VK — false, соц-кнопок нет)
+  appId() { try { return new URLSearchParams(location.search).get('vk_app_id') || ''; } catch (e) { return ''; } },
+  async share(text) { // пост на стену: текст + ссылка на приложение; true — опубликован
+    if (!this.vk) return false;
+    const p = { message: String(text || '') }, id = this.appId();
+    if (/^\d+$/.test(id)) p.attachments = 'https://vk.com/app' + id;
+    try { const r = await this._send('VKWebAppShowWallPostBox', p, 600000); return !!(r && r.post_id); } catch (e) { return false; }
+  },
+  async invite() { // окно приглашения друзей; true — окно отработало без ошибки (закрыл/отменил — false)
+    if (!this.vk) return false;
+    try { const r = await this._send('VKWebAppShowInviteBox', {}, 600000); return !!(r && r.success !== false); } catch (e) { return false; }
   },
   ready() {}, start() {}, stop() {}, // в VK нет аналога Game Ready / GameplayAPI
   lang() {
@@ -301,6 +317,8 @@ const T={
   away:'Пока тебя не было…',awayM:m=>`брейнроты фармили ${m} мин без тебя`,x3ad:'×3 за рекламу',take:'Забрать',
   daily:n=>`Подарок дня · серия ${n}`,dailyM:'Заходи каждый день — подарок растёт до 7-го дня.',
   boostOn:'🚀 Доход ×2 на 3 минуты!',adStub:'Здесь будет реклама Яндекса за награду',
+  vkInv:'Позвать',vkShare:'📣 Поделиться',vkShared:'Пост опубликован!',vkInvGot:g=>`Спасибо за друга! +${g} 🪙`,vkInvDone:'Спасибо! Подарок за приглашение — раз в день',
+  vkPost:(n,b)=>`Вывел брейнрота «${n}» ${b} в Мемоферме! А у тебя такой есть? 🥚✨`,vkPostMax:(n,b)=>`Собрал САМОГО главного брейнрота — «${n}» ${b}! Мемоферма пройдена 😎 Догоняй!`,
   q:['«','»'],num:'ru-RU',units:[' трлн',' млрд',' млн',' тыс'],dec:','
  },
  en:{
@@ -318,6 +336,8 @@ const T={
   away:'While you were away…',awayM:m=>`brainrots farmed ${m} min without you`,x3ad:'×3 for an ad',take:'Collect',
   daily:n=>`Daily gift · streak ${n}`,dailyM:'Come back every day: the gift grows until day 7.',
   boostOn:'🚀 Income ×2 for 3 minutes!',adStub:'A rewarded Yandex ad will play here',
+  vkInv:'Invite',vkShare:'📣 Share',vkShared:'Posted!',vkInvGot:g=>`Thanks for the invite! +${g} 🪙`,vkInvDone:'Thanks! The invite gift is once a day',
+  vkPost:(n,b)=>`Just hatched "${n}" ${b} on my Meme Farm! Got one yet? 🥚✨`,vkPostMax:(n,b)=>`Got the TOP brainrot, "${n}" ${b}! Meme Farm complete 😎 Catch me if you can!`,
   q:['“','”'],num:'en-US',units:['T','B','M','K'],dec:'.'
  }
 };
@@ -389,6 +409,7 @@ function renderHUD(){
   $('shopdot').hidden=!SHOP.some(s=>s.ok()&&S.coins>=s.price());
   $('x2t').textContent=boost?t('x2more'):t('x2');
   $('snd').textContent=S.sound?'🔊':'🔇';
+  $('vkinv').hidden=!vkOn();$('sbrow').classList.toggle('vk4',vkOn());$('vkinvdot').hidden=S.invDay===dayKey();
   const h=$('hint');
   const tips=t('tips');
   if(S.tut<3){h.textContent=tips[S.tut];h.hidden=false}else h.hidden=true;
@@ -403,7 +424,7 @@ function openOv(html){const o=$('ov');o.innerHTML=`<div class="sheet">${html}</d
 function closeOv(){$('ov').hidden=true;$('ov').innerHTML=''}
 function showDiscover(l){
   const m=MEMES[l-1];snd('fan');confetti();
-  openOv(`<h2>${t('newMeme')}</h2><div class="big">${crHTML(l)}<b style="font-size:22px">${m.n}</b><span class="say">${t('q')[0]}${m.s}${t('q')[1]}</span><span class="m">${t('memeInfo',t('tiers')[tier(l)],l,MEMES.length,fmt(inc(l)*S.mult))}</span></div><button class="btn main" data-a="close">${t('cool')}</button>`);
+  openOv(`<h2>${t('newMeme')}</h2><div class="big">${crHTML(l)}<b style="font-size:22px">${m.n}</b><span class="say">${t('q')[0]}${m.s}${t('q')[1]}</span><span class="m">${t('memeInfo',t('tiers')[tier(l)],l,MEMES.length,fmt(inc(l)*S.mult))}</span></div>${vkOn()?`<button class="btn" data-a="vkshare" data-x="${l}">${t('vkShare')}</button>`:''}<button class="btn main" data-a="close">${t('cool')}</button>`);
 }
 function showShop(){
   openOv(`<h2>${t('shop')}</h2>${SHOP.map(s=>{const ok=s.ok(),p=s.price();return`<button class="btn ${ok&&S.coins>=p?'main':''}" data-a="buy" data-x="${s.id}" ${!ok||S.coins<p?'disabled':''}>${s.n}<small>${typeof s.d==='function'?s.d():s.d} · ${ok?fmt(p)+' 🪙':s.id==='egg'?t('shLocked'):t('shMax')}</small></button>`}).join('')}<button class="btn" data-a="close">${t('close')}</button>`);
@@ -477,6 +498,12 @@ function daily(){
   openOv(`<h2>${t('daily',S.streak)}</h2><div class="big"><span style="font-size:64px">🎁</span><b style="font-size:24px;color:var(--lemon)">+${fmt(g)} 🪙</b><span class="m">${t('dailyM')}</span></div><button class="btn main" data-a="close">${t('take')}</button>`);snd('fan');return true;
 }
 function save(){S.last=Date.now();YSDK.save(KEY,S)}
+/* соцмеханики VK: только если обёртка VK (YSDK.isVK); в Яндексе и на сайте кнопок нет */
+const vkOn=()=>typeof YSDK!=='undefined'&&!!YSDK.isVK;
+const dayKey=()=>new Date().toISOString().slice(0,10);
+function vkShare(l){if(!vkOn())return;const m=MEMES[l-1];YSDK.share(t(l>=MEMES.length?'vkPostMax':'vkPost',m.n,m.b+m.a)).then(ok=>{if(ok)toast(t('vkShared'))})}
+function vkInvite(){if(!vkOn())return;YSDK.invite().then(ok=>{if(!ok)return;if(S.invDay===dayKey())return toast(t('vkInvDone'));
+  S.invDay=dayKey();const g=Math.max(100,Math.round(income()*30));S.coins+=g;S.total+=g;snd('coin');toast(t('vkInvGot',fmt(g)));renderHUD();save()})}
 
 /* ===== Действия ===== */
 const A={
@@ -487,6 +514,7 @@ const A={
  off1:x=>{S.coins+=+x;closeOv();snd('coin');renderHUD();save()},
  off3:x=>YSDK.rewarded(()=>{S.coins+=+x*3;closeOv();snd('fan');confetti();renderHUD();save()},$('adov')),
  sound:()=>{S.sound=!S.sound;renderHUD();save()},
+ vkshare:x=>vkShare(+x),vkinv:vkInvite,
 };
 document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el||el.disabled)return;const f=A[el.dataset.a];if(f)f(el.dataset.x)});
 document.addEventListener('contextmenu',e=>e.preventDefault());

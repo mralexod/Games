@@ -557,7 +557,15 @@ function startDay(first){
 function genQuests(){return Object.keys(QDEF).sort(()=>Math.random()-.5).slice(0,3).map(id=>({id,n:QDEF[id].n(),c:0,done:false,rew:k1(QDEF[id].rew*(S.cls?3:1))}))}
 function quest(id,amt){if(!S.quests)return;for(const q of S.quests)if(q.id===id&&!q.done){q.c=id==='profit'?S.dayStats.profit:q.c+amt;if(q.c>=q.n){q.done=true;S.money+=q.rew;setTimeout(()=>{coins(10);snd('win');toast(`Задание выполнено: ${QDEF[q.id].t(q.n)} · +${rub(q.rew)}`)},500)}}}
 function own(car){if(!S.album)S.album={};if(S.album[car.m])return;S.album[car.m]=1;setTimeout(()=>toast(`Новая модель в коллекции: ${model(car).name}! (${Object.keys(S.album).length}/${MODELS.length})`),1200);
+  if(vkOn()&&S.tut>=5){const nm=model(car).name,k=Object.keys(S.album).length;setTimeout(()=>push('garage','Гараж мечты · новая модель',`${nm} в коллекции! Нажми — похвастаться в ВК`,{k:'vkshare',t:`Забрал в свой гараж мечты ${nm}! 🚗 В коллекции уже ${k} из ${MODELS.length}. Перекуп растёт 😎`},true),2600)}
   if(!S.albumRew&&MODELS.filter(m=>m.cls===0).every(m=>S.album[m.id])){S.albumRew=1;S.money+=50000;setTimeout(()=>{confetti();snd('win');toast('Собрал все «Вёдра»! +50 000 ₽')},2600)}}
+/* соцмеханики VK: только если обёртка VK (YSDK.isVK); в Яндексе и на сайте кнопок нет */
+const vkOn=()=>typeof YSDK!=='undefined'&&!!YSDK.isVK;
+const dayKey=()=>new Date().toISOString().slice(0,10);
+const BIGDEAL=30000,invGift=()=>k1(10000*(S.cls?3:1));
+function vkShare(text){if(!vkOn())return;YSDK.share(text).then(ok=>{if(ok)toast('Пост опубликован!')})}
+function vkInvite(){if(!vkOn())return;YSDK.invite().then(ok=>{if(!ok)return;if(S.invDay===dayKey())return toast('Спасибо! Подарок за приглашение — раз в день');
+  S.invDay=dayKey();const g=invGift();S.money+=g;coins(10);snd('coin');toast(`Спасибо за друга! +${rub(g)}`);commit()})}
 function dailyGift(){const d=new Date(),today=d.toISOString().slice(0,10),y=new Date(d-864e5).toISOString().slice(0,10);if(S.realLast===today)return;
   S.streak=S.realLast===y?(S.streak||0)+1:1;S.realLast=today;if(S.tut<5)return;const g=k1(5000*Math.min(7,S.streak)*(S.cls?3:1));S.money+=g;ui.ov={k:'gift',g}}
 function newGame(){
@@ -758,6 +766,8 @@ function push(app,title,text,go,long){
 /* ===== VK Bridge (Игры ВКонтакте) — тот же интерфейс, что у общее/ysdk.js ===== */
 /* Подставляется сборщиком (собрать-релиз.py --vk) вместо копии ysdk.js. Рядом — vk-bridge.min.js (локально, без CDN).
    Интерфейс для игры: YSDK.init(onMute) · ready() · start() · stop() · lang() · fullscreen() · rewarded(cb, el) · save(k, d) · load(k).
+   Соцмеханики (только VK): YSDK.isVK · share(text) → пост на стену со ссылкой на приложение · invite() → окно «пригласить друзей».
+   В ysdk.js (Яндекс) их нет — игра проверяет `typeof YSDK!=='undefined' && YSDK.isVK`, кнопки показывает только в VK.
    Вне VK (bridge не отвечает) — всё через localStorage, реклама за награду — экран-заглушка, ошибок нет.
    Сохранения VK: VKWebAppStorageSet/Get, значение ≤ 4096 байт → режем на куски <ключ>_0..<ключ>_N-1 + <ключ>_n (число кусков). */
 const YSDK = {
@@ -783,6 +793,18 @@ const YSDK = {
       }
     } catch (e) { this.vk = false; }
     document.addEventListener('visibilitychange', () => { if (document.hidden) this._flushAll(); });
+  },
+  get isVK() { return !!this.vk; }, // true только если VKWebAppInit прошёл (вне VK — false, соц-кнопок нет)
+  appId() { try { return new URLSearchParams(location.search).get('vk_app_id') || ''; } catch (e) { return ''; } },
+  async share(text) { // пост на стену: текст + ссылка на приложение; true — опубликован
+    if (!this.vk) return false;
+    const p = { message: String(text || '') }, id = this.appId();
+    if (/^\d+$/.test(id)) p.attachments = 'https://vk.com/app' + id;
+    try { const r = await this._send('VKWebAppShowWallPostBox', p, 600000); return !!(r && r.post_id); } catch (e) { return false; }
+  },
+  async invite() { // окно приглашения друзей; true — окно отработало без ошибки (закрыл/отменил — false)
+    if (!this.vk) return false;
+    try { const r = await this._send('VKWebAppShowInviteBox', {}, 600000); return !!(r && r.success !== false); } catch (e) { return false; }
   },
   ready() {}, start() {}, stop() {}, // в VK нет аналога Game Ready / GameplayAPI
   lang() {
@@ -979,6 +1001,7 @@ function vHome(){
   <div class="w"><span class="lab">Кошелёк · ${lv[1]}</span><span class="money">${rub(S.money)}</span><span class="row" style="justify-content:space-between"><span>${starsHTML(S.rep)} <span class="m">репутация</span></span><span class="m">сегодня ${rub(S.dayStats.profit)}</span></span></div>
   <div class="w"><span class="lab">Задания дня · награда сразу</span>${(S.quests||[]).map(q=>`<div class="qst ${q.done?'done':''}"><div class="row"><span>${q.done?'✅':'◻️'} ${QDEF[q.id].t(q.n)}</span><span class="m" style="white-space:nowrap">+${rub(q.rew)}</span></div>${q.done?'':`<div class="bar"><i style="width:${Math.min(100,q.c/q.n*100)}%"></i></div>`}</div>`).join('')}</div>
   <button class="w" data-a="album"><span class="lab">Гараж мечты · коллекция</span><div class="row" style="justify-content:space-between"><b>${Object.keys(S.album||{}).length} из ${MODELS.length} моделей</b><span class="m">открыть ›</span></div><div class="bar"><i style="width:${Object.keys(S.album||{}).length/MODELS.length*100}%"></i></div><span class="m">Собери все «Вёдра» — +50 000 ₽</span></button>
+  ${vkOn()?`<button class="w" data-a="vkinv"><span class="lab">Друзья</span><div class="row" style="justify-content:space-between"><b>👥 Позвать друга в игру</b><span class="m">${S.invDay===dayKey()?'спасибо!':`+${rub(invGift())} раз в день`}</span></div></button>`:''}
   <div class="w"><span class="lab">Мечта</span><div class="cvbox">${cv(gel,{noDirt:true,noShine:true,h:.46})}</div>
    <div class="row" style="justify-content:space-between"><b>Гелик</b><span class="m">${rub(capv)} из ${rub(GOAL)}</span></div><div class="bar"><i style="width:${Math.max(1.5,pct)}%"></i></div></div>
   <div class="w"><span class="lab">Новости рынка · сегодня</span>
@@ -1231,6 +1254,7 @@ function ovBuyer(B){
 }
 function buyerOpts(B,car){
   if(!isOpen(B)||!car){const o=[];
+    if(B.sale&&B.sale.profit>=BIGDEAL&&vkOn())o.push({t:'📣 Похвастаться сделкой',f:()=>vkShare(`Толкнул ${B.carName} с наваром ${rub(B.sale.profit)}! 🚗💸 Перекуп от бога. Сможешь круче?`)});
     if(B.sale&&B.sale.profit>0&&!B.sale.bonus)o.push({t:`+50% к прибыли за рекламу (+${rub(k1(B.sale.profit*.5))})`,hot:true,f:()=>showAd(()=>{const a=k1(B.sale.profit*.5);S.money+=a;S.stats.profit+=a;S.dayStats.profit+=a;B.sale.bonus=true;saySys(B,`Бонус: +${rub(a)}`,'ok');coins(8);snd('coin');commit()})});
     o.push({t:'Назад',f:closeOv,ghost:true});return o}
   if(B.type==='scam')return[{t:'Скинуть код из смс',f:()=>bScam(B,true)},{t:'Только наличка при встрече',f:()=>bScam(B,false),hot:true}];
@@ -1352,7 +1376,7 @@ function ovShop(car){
 }
 function ovAlbum(){
   const al=S.album||{},own=MODELS.filter(m=>al[m.id]).length;
-  return`<div class="chead"><button class="back" data-a="close" aria-label="Назад">‹</button><span class="who"><b>Гараж мечты</b><span>Коллекция ${own}/${MODELS.length} · за все «Вёдра» +50 000 ₽</span></span></div>
+  return`<div class="chead"><button class="back" data-a="close" aria-label="Назад">‹</button><span class="who"><b>Гараж мечты</b><span>Коллекция ${own}/${MODELS.length} · за все «Вёдра» +50 000 ₽</span></span></div>${vkOn()&&own?`<button class="btn" data-a="vkalbum" style="margin:0 12px">📣 Похвастаться коллекцией</button>`:''}
    <div class="msgs"><div class="album">${MODELS.map(m=>{const has=al[m.id];const g={uid:5e6+hash(m.id)%1000,m:m.id,year:m.y[1],km:0,color:hash(m.id)%COLORS.length,plate:{n:'',r:''},defs:[],dirt:0,seed:hash(m.id),tune:{}};return`<div class="it">${cv(g,{h:.5,sil:!has})}<b>${has?m.name:'???'}</b><span class="m">${CLASSES[m.cls].name}</span></div>`}).join('')}</div></div>`;
 }
 
@@ -1443,6 +1467,8 @@ const A={
  stab:x=>{ui.shopTab=x;renderOv()},
  album:()=>{ui.ov={k:'album'};render()},
  giftok:()=>{closeOv();coins(12);snd('coin')},
+ vkinv:()=>vkInvite(),
+ vkalbum:()=>{const k=Object.keys(S.album||{}).length;vkShare(`Мой гараж мечты: ${k} из ${MODELS.length} моделей! 🚗🏁 Собираю коллекцию в «Перекупе». Сможешь больше?`)},
  repstart:(x,y)=>{const car=S.garage.find(c=>c.uid===ui.ov.id),cost=fixCost(car,y);if(S.money<cost)return toast('Не хватает денег на запчасти.');S.money-=cost;car.spent+=cost;ui.rep={car:car.uid,id:y,n:0,need:Math.round(10+DEF[y].hit*45)};snd('coin');commit()},
  tap:()=>{const R0=ui.rep;if(!R0)return;R0.n++;const hs=document.getElementById('hs');sparks(hs);snd('tap');if(hs)hs.style.setProperty('--p',Math.round(R0.n/R0.need*100));const rn=document.getElementById('repn');if(rn)rn.textContent=`${R0.n}/${R0.need}`;try{navigator.vibrate&&navigator.vibrate(12)}catch(e){}
    if(R0.n>=R0.need){const car=S.garage.find(c=>c.uid===R0.car);const d=car.defs.find(z=>z.id===R0.id);d.fixed=true;ui.rep=null;floatText(hs,'+'+rub(k1(DEF[R0.id].hit*model(car).base*yk(car))));confetti();snd('win');quest('repair',1);toast(`Готово: ${DEF[R0.id].n}! Тачка подорожала.`);setTimeout(commit,400)}},
@@ -1455,7 +1481,7 @@ const A={
  reset:()=>{if(!ui.resetArm){ui.resetArm=true;renderScreen();return}ui.resetArm=false;try{localStorage.removeItem(KEY)}catch(e){}newGame();ui.ov=null;ui.tab='home';render();toast('Новая игра. Удачи, перекуп!')},
 };
 document.addEventListener('click',e=>{
-  if(e.target.closest('#push')){const g=ui.push&&ui.push.go;document.getElementById('push').hidden=true;if(g){if(g.k==='seller'&&S.board.some(l=>l.uid===g.id)){ui.ov={k:'seller',id:g.id}}else if(g.k==='buyer'){ui.ov={k:'buyer',id:g.id}}render()}return}
+  if(e.target.closest('#push')){const g=ui.push&&ui.push.go;document.getElementById('push').hidden=true;if(g&&g.k==='vkshare'){vkShare(g.t);return}if(g){if(g.k==='seller'&&S.board.some(l=>l.uid===g.id)){ui.ov={k:'seller',id:g.id}}else if(g.k==='buyer'){ui.ov={k:'buyer',id:g.id}}render()}return}
   const el=e.target.closest('[data-a]');if(!el||el.disabled)return;
   const f=A[el.dataset.a];if(f)f(el.dataset.x,el.dataset.y);
 });
